@@ -188,6 +188,11 @@ function showPageNote() {
       }
       localStorage.setItem(cleanupKey, 'done');
     }
+    const idleReviewKey = 'zigzag.home.migrations.idleReview.v1.' + notePrefix;
+    if (hasIdleNote && !localStorage.getItem(idleReviewKey)) {
+      localStorage.setItem(key, noteInput.defaultValue);
+      localStorage.setItem(idleReviewKey, 'done');
+    }
     const saved = localStorage.getItem(key);
     // Older prototypes had one note per plan. Show it on the starting page.
     noteInput.value = saved ?? (usesHomeKey && section === 'apps.ui1'
