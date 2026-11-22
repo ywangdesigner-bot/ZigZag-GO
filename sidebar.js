@@ -115,7 +115,6 @@ function showPageNote() {
     }
     const reviewKey = 'zigzag.home.migrations.appReview.' + notePrefix;
     if (!localStorage.getItem(reviewKey)) {
-      const task = '\n\n共同测试任务：「你想去拍照，能带我去吗？」先不提示滚轮用法，观察孩子是在辨认 Snap、转到 Snap，还是按下进入时犹豫。';
       const reviews = {
         '1': `形式 1 · 系统式轮播
 中心图标和名称显示当前选中的功能，外围弧条提示还有其他入口。转动滚轮时，弧条长短和中心内容一起变化。
@@ -135,7 +134,7 @@ function showPageNote() {
       };
       for (const [ui, body] of Object.entries(reviews)) {
         const uiKey = notePrefix + '.apps.ui' + ui;
-        if (localStorage.getItem(uiKey) === null) localStorage.setItem(uiKey, body + task);
+        if (localStorage.getItem(uiKey) === null) localStorage.setItem(uiKey, body);
       }
       localStorage.setItem(reviewKey, 'done');
     }
@@ -175,6 +174,19 @@ function showPageNote() {
         }
       }
       localStorage.setItem(designNotesKey, 'done');
+    }
+    const cleanupKey = 'zigzag.home.migrations.removePhotoTestTask.v1.' + notePrefix;
+    if (!localStorage.getItem(cleanupKey)) {
+      const removedTask = '共同测试任务：「你想去拍照，能带我去吗？」先不提示滚轮用法，观察孩子是在辨认 Snap、转到 Snap，还是按下进入时犹豫。';
+      for (const storageKey of Object.keys(localStorage)) {
+        if (storageKey !== notePrefix && !storageKey.startsWith(notePrefix + '.apps.ui')) continue;
+        const existing = localStorage.getItem(storageKey);
+        if (existing?.includes(removedTask)) {
+          const updated = existing.replaceAll('\n\n' + removedTask, '').replaceAll(removedTask, '');
+          localStorage.setItem(storageKey, updated);
+        }
+      }
+      localStorage.setItem(cleanupKey, 'done');
     }
     const saved = localStorage.getItem(key);
     // Older prototypes had one note per plan. Show it on the starting page.
