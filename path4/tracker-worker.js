@@ -1,0 +1,5 @@
+importScripts('assets/opencv.js');
+let engine,cvReady;
+async function init(){const cv=await Promise.resolve(self.cv);cvReady=cv;const {PrintMatcher}=await import('./target-matcher.js?case=toys-v1');const response=await fetch('assets/toy-scene.png'),image=await createImageBitmap(await response.blob());const canvas=new OffscreenCanvas(image.width,image.height),ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);image.close();const rgba=cv.matFromImageData(ctx.getImageData(0,0,canvas.width,canvas.height));try{engine=new PrintMatcher(cv,rgba);}finally{rgba.delete();}postMessage({type:'ready'});}
+const loading=init().catch(error=>{postMessage({type:'error',message:String(error)});throw error;});
+self.onmessage=async({data})=>{if(data.type!=='frame')return;try{await loading;const rgba=cvReady.matFromImageData(new ImageData(new Uint8ClampedArray(data.buffer),data.width,data.height));let result;try{result=engine.detect(rgba);}finally{rgba.delete();}postMessage({type:'result',generation:data.generation,sharpness:data.sharpness,result});}catch(error){postMessage({type:'error',message:String(error),generation:data.generation});}};

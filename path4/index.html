@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>拍照探索 · Path4 · Snap & Reveal</title><link rel="stylesheet" href="style.css?v=path4-zig-reeling"></head><body>
+<main class="device" aria-label="ZIGZAG GO 拍照探索 Path 4">
+ <div class="shell"></div>
+ <section class="screen" aria-label="P2-1 实时取景" data-phase="idle">
+  <div class="world"><img class="demo-scene" src="assets/toy-scene.png" alt="消防车、积木和小熊的示例场景"><video autoplay muted playsinline hidden></video></div>
+  <div class="focus" hidden><img src="assets/focus.svg" alt="对焦指示"></div>
+  <div class="object-list" hidden aria-label="候选对象"></div>
+  <div class="processing-stage" hidden><img alt="Processing"><img class="processing-stars" alt="StarSparkle"></div>
+  <div class="result-stage" hidden><img src="assets/particle.gif" alt="Particle"></div>
+  <div class="freeze" hidden><canvas></canvas></div>
+  <img class="reeling-zig" src="assets/zig-reeling.png" alt="" hidden>
+  <svg class="fishing-rod" viewBox="0 0 480 480" aria-label="鱼竿将照片钓回来" hidden><path class="rod-shadow"/><path class="rod-pole"/><path class="rod-grip" d="M 432 410 L 424 369"/><circle class="rod-reel" cx="432" cy="386" r="12"/><path class="rod-reel-mark" d="M 425 386 H 439 M 432 379 V 393"/><path class="rod-line"/><path class="rod-hook"/></svg>
+  <div class="fishing-meter" hidden role="progressbar" aria-label="拉回物体能量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fishing-track"><div class="fishing-fill"></div><div class="fishing-tip"><img src="assets/universal-star.svg" alt=""></div><i></i><i></i><i></i></div></div>
+  <div class="capture-blur" hidden></div>
+  <div class="capture-flash" hidden></div>
+  <figure class="caught" hidden><canvas></canvas></figure><div class="result-label" hidden></div>
+  <div class="energy" hidden aria-label="按住滚轮键给Zig充能">
+   <img class="energy-bg" src="assets/energy-bg.svg" alt="">
+   <div class="energy-progress"><img src="assets/energy-ring.svg" alt=""></div>
+   <div class="energy-begin"></div>
+   <div class="cursor-orbit"><img class="energy-cursor" src="assets/energy-cursor.svg" alt="能量星形指针"></div>
+  </div>
+  <div class="answer-processing" hidden aria-label="AI正在处理你的回答"><div class="answer-blur"></div><img class="answer-zig" alt="Zig正在思考"><img class="answer-loading" alt="正在处理"></div>
+  <img class="zig-speaking" alt="Zig说话" hidden>
+  <button class="start-camera" type="button">开始探索</button>
+ </section>
+ <button class="control speech" aria-label="说话键" type="button"></button>
+ <button class="control wheel" aria-label="滚轮键：滚动选择，短按确认" type="button"></button>
+ <button class="control shutter" aria-label="拍照键：短按拍摄" type="button"></button>
+ <button class="control menu" aria-label="返回上一层" type="button"><svg aria-hidden="true" viewBox="0 0 32 32"><path d="M10 25h10a7.5 7.5 0 0 0 0-15H6m6-6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</main>
+<button class="playback-toggle" type="button" aria-label="暂停原型" aria-pressed="false">Ⅱ 暂停</button>
+<div class="voice-choices" hidden aria-label="语音输入选择"><p>Choose your sound</p><button class="choo-choice" type="button">Choo-choo!</button></div>
+<aside class="designer" aria-label="设计师检查工具">
+ <div class="tools"><button id="use-camera" type="button">Razer Kiyo</button><button id="use-demo" type="button">示例场景</button><button id="move-device" type="button">模拟移动</button><button id="restart" type="button">重新取景</button></div>
+ <div class="camera-picker"><label for="camera-device">摄像头</label><select id="camera-device" aria-label="摄像头选择"><option value="">自动查找 Razer Kiyo</option></select><span class="camera-name">未连接</span></div>
+ <p class="status" role="status">按开始探索，打开摄像头</p>
+ <p class="note">Path 4 · 拍照后选择消防车，转动滚轮将它钓回 · 本地处理 · 消防车／积木／小熊案例</p>
+</aside>
+<script type="module" src="app.js?v=path4-caught-question"></script></body></html>

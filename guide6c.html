@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型6C · 图鉴查看</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #404040; }
+  .device { position: relative; width: min(94vw, 76dvh, 698px); aspect-ratio: 698 / 859; isolation: isolate; }
+  .shell, .screen, .control { position: absolute; background-repeat: no-repeat; }
+  .shell, .screen { inset: 0; background-size: 100% 100%; pointer-events: none; }
+  .shell {
+    z-index: 1;
+    background-image: url(device.png);
+    clip-path: polygon(0 0, 100% 0, 100% 22.8%, 93.55% 22.8%, 93.55% 44%, 100% 44%, 100% 100%, 0 100%, 0 69.2%, 10.17% 69.2%, 10.17% 22.7%, 0 22.7%);
+  }
+  .screen {
+    z-index: 2;
+    background: radial-gradient(circle at 52% 42%, #191919, #090909 72%);
+    clip-path: ellipse(34.25% 27.88% at 51.86% 34.72%);
+  }
+  .control {
+    padding: 0; border: 0; appearance: none; background-color: transparent;
+    background-image: url(device.png); cursor: pointer; touch-action: none;
+    transition: translate 90ms ease, filter 110ms ease;
+  }
+  .speech {
+    left: 0; top: 22.7%; width: 10.32%; height: 46.5%;
+    background-size: 969.44% 215.05%; background-position: left 42.43%;
+    clip-path: polygon(0 7%, 100% 0, 100% 100%, 91% 99%, 90% 88%, 0 9%);
+    --press: 22%;
+  }
+  .wheel {
+    left: 93.41%; top: 22.82%; width: 6.59%; height: 21.18%;
+    background-size: 1517.39% 472.53%; background-position: right 28.95%;
+    clip-path: ellipse(134% 58% at -34% 50%);
+    --press: -28%;
+  }
+  .control[data-held] { translate: var(--press) 0; filter: brightness(.87); }
+  .control:focus-visible { filter: brightness(1.3); }
+  .wheel { cursor: ns-resize; }
+  .menu {
+    left: 74.64%; top: 63.67%; width: 13.47%; height: 10.94%;
+    background-size: 742.55% 913.83%; background-position: 86.26% 71.50%;
+    clip-path: circle(49%);
+    z-index: 2;
+  }
+  .menu:active { filter: brightness(.82); }
+  .wheel:disabled { cursor: default; }
+  .photo-view {
+    position: absolute; left: 17.335%; top: 6.869%; width: 68.768%; height: 55.879%;
+    display: block;
+  }
+  .guide-tile:not([data-unlocked]) .tile-sticker, .tile-badge { filter: grayscale(1); }
+  .tunnel path { fill: none; stroke-linejoin: round; }
+  .tunnel-outline { stroke: #666; stroke-width: 94; }
+  .tunnel-rim { stroke: #202020; stroke-width: 90; }
+  .tunnel-inner-edge { stroke: #515151; stroke-width: 75; }
+  .tunnel-floor { stroke: #292929; stroke-width: 72; }
+  .tunnel-guide { stroke: #777; stroke-width: 1.5; stroke-dasharray: 5 12; opacity: .65; }
+  .photo { fill: #ababab; transition: fill 180ms ease-out; }
+  @media (prefers-reduced-motion: reduce) { .photo { transition: none; } }
+  .guide-tile[data-detail] .photo { fill: #d3d3d3; stroke: #989898; stroke-width: 10; }
+  .guide-tile:not([data-detail]) .tile-badge { display: none; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  @font-face {
+    font-family: "ABC Publisher Rounded Sans";
+    src: url("ABCPublisherRoundedSans-Bold.otf") format("opentype");
+    font-weight: 700;
+    font-display: swap;
+  }
+  .voice-commands {
+    position: fixed; inset: auto 0 max(10px, env(safe-area-inset-bottom));
+    z-index: 3; display: flex; justify-content: center; gap: 10px;
+  }
+  .voice-commands[hidden] { display: none; }
+  .voice-commands button {
+    min-height: 44px; padding: 0 18px; border: 1px solid #aaa; border-radius: 24px;
+    background: #202020; color: white; cursor: pointer;
+    font: 700 16px "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .voice-commands button:hover, .voice-commands button:focus-visible { background: #414141; }
+  .voice-overlay {
+    position: absolute; left: 17.335%; top: 6.869%; width: 68.768%; height: 55.879%;
+    z-index: 3; overflow: hidden; border-radius: 50%; pointer-events: none;
+    background: rgb(18 17 16 / 46%);
+  }
+  .voice-overlay img { position: absolute; display: block; }
+  .voice-listening img { inset: 0; width: 100%; height: 100%; }
+  .voice-magnifier {
+    left: 50%; top: 50%; width: 17.29%; height: 18.54%;
+    translate: -50% -50%;
+  }
+  .voice-star { animation: voice-twinkle .57s ease-in-out infinite alternate; }
+  .voice-star-large { left: 28.65%; top: 32.71%; width: 5.21%; }
+  .voice-star-small { left: 67.81%; top: 61.56%; width: 3.125%; animation-delay: -.31s; }
+  @keyframes voice-twinkle {
+    from { transform: scale(.52); opacity: .3; }
+    to { transform: scale(1.3); opacity: 1; }
+  }
+  .device { container-type: inline-size; }
+  .screen[data-voice-overlay] > .photo-view { filter: blur(1.3cqw); }
+  @media (prefers-reduced-motion: reduce) { .voice-star { animation: none; } }
+  .capture-view, .capture-view video, .unlock-effect, .capture-flash {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+  .capture-view { background: #101114; }
+  .capture-view video { object-fit: cover; }
+  .capture-focus { position: absolute; width: 27.5%; left: 50%; top: 50%; translate: -50% -50%; }
+  .capture-guide-icon {
+    position: absolute; left: 18%; top: 17%; width: 18%; height: 18%;
+    object-fit: contain; pointer-events: none;
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 65%));
+  }
+  .camera-status {
+    position: absolute; top: 70%; left: 14%; width: 72%; text-align: center;
+    color: white; margin: 0; padding: .45em; border-radius: 8px;
+    background: rgb(0 0 0 / 65%); font: 600 clamp(11px, 2.25cqw, 16px)/1.4 system-ui;
+  }
+  .unlock-effect {
+    inset: auto; left: var(--effect-x, 50%); top: var(--effect-y, 50%);
+    width: 41.6667%; height: 41.6667%; translate: -50% -50%; object-fit: contain;
+  }
+  .capture-flash { background: white; }
+  .shutter {
+    left: 49.85%; top: 70.43%; width: 25.93%; height: 21.07%;
+    background-size: 385.64% 474.59%; background-position: 67.30% 89.24%;
+    clip-path: circle(49%); z-index: 2;
+  }
+  .shutter:active, .camera-menu:active { filter: brightness(.82); }
+  .shutter:disabled { cursor: default; }
+  .shutter[data-complete] { filter: grayscale(.65) brightness(.8); }
+  .camera-menu {
+    left: 74.64%; top: 63.67%; width: 13.47%; height: 10.94%;
+    background-size: 742.55% 913.83%; background-position: 86.26% 71.50%;
+    clip-path: circle(49%); z-index: 2;
+  }
+  .guide-voice {
+    position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(90vw, 640px); translate: -50% 0; z-index: 3; margin: 0; padding: .5em;
+    border-radius: 8px; background: rgb(0 0 0 / 70%); color: white;
+    text-align: center; font: 600 15px/1.4 system-ui;
+  }
+  .capture-stage { position: absolute; left: 17.335%; top: 6.869%; width: 68.768%; height: 55.879%; }
+  .tile-sticker { transform-box: fill-box; transform-origin: center; }
+</style>
+<style>body{display:block;overflow:hidden}.device{width:100%;height:100dvh}.menu{display:grid;place-items:center}.menu::before{content:"";position:absolute;inset:10%;border-radius:50%;background:linear-gradient(135deg,#d8d5c7,#c3beb0)}.menu svg{position:relative;width:46%;height:46%;color:#544f44}</style></head>
+<body>
+<main class="device" aria-label="原型6C · 图鉴查看">
+  <div class="shell"></div>
+  <section class="screen" id="screen6" aria-label="Screen6 · 图鉴查看">
+    <svg class="photo-view" viewBox="0 0 480 480" role="group" aria-label="折返图鉴列表">
+      <g class="tunnel" aria-hidden="true"></g>
+      <g class="photos"></g>
+    </svg>
+      <div class="voice-overlay voice-listening" aria-hidden="true" hidden>
+        <img class="voice-character" alt="">
+        <img class="voice-speaker" alt="">
+      </div>
+      <div class="voice-overlay voice-search" aria-hidden="true" hidden>
+        <img class="voice-magnifier" src="magnifier.png" alt="">
+        <img class="voice-star voice-star-large" src="star.png" alt="">
+        <img class="voice-star voice-star-small" src="star-small.png" alt="">
+      </div>
+    <div class="capture-stage">
+      <div class="capture-view" hidden>
+        <video muted autoplay playsinline></video>
+        <img class="capture-guide-icon" alt="">
+        <img class="capture-focus" src="focus-indicator.png" alt="">
+        <p class="camera-status" role="status" hidden></p>
+        <div class="capture-flash" hidden></div>
+      </div>
+      <img class="unlock-effect" alt="" aria-hidden="true" hidden>
+    </div>
+  </section>
+  <button class="control shutter" type="button" aria-label="拍照键" disabled></button>
+  <button class="control speech" type="button" aria-label="说话键" aria-pressed="false" aria-controls="voice-commands"></button>
+  <button class="control wheel" type="button" aria-label="滚轮键，上下方向键浏览图鉴" disabled></button>
+  <button class="control menu" type="button" aria-label="返回上一层"><svg aria-hidden="true" viewBox="0 0 32 32"><path d="M10 25h10a7.5 7.5 0 0 0 0-15H6m6-6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <p class="sr-only" aria-live="polite"></p>
+</main>
+<p class="guide-voice" aria-live="polite" hidden></p>
+<div id="voice-commands" class="voice-commands" role="group" aria-label="模拟语音指令" hidden>
+  <button type="button" data-command="rabbit">Find Rabbit</button>
+  <button type="button" data-command="fruits">Fruit Planet</button>
+</div>
+<script>
+  const track = [
+    [-16, 66], [96, 66], [224, 66], [350, 66], [418, 130], [407, 240],
+    [240, 240],
+    [73, 240], [62, 350], [126, 414], [252, 414], [380, 414], [496, 414]
+  ];
+  const focusStop = 6;
+  const focusRadius = 100;
+  const wrap = (value, count) => ((value % count) + count) % count;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const layer = document.querySelector('.photos');
+  const wheel = document.querySelector('.wheel');
+  const speech = document.querySelector('.speech');
+  const voiceCommands = document.querySelector('#voice-commands');
+  const viewport = document.querySelector('.screen');
+  const listening = viewport.querySelector('.voice-listening');
+  const listeningGifs = [
+    [listening.querySelector('.voice-character'), 'listening.gif'],
+    [listening.querySelector('.voice-speaker'), 'speaker-loop.gif']
+  ];
+  for (const [, src] of listeningGifs) {
+    const image = new Image();
+    image.src = src;
+  }
+  const searching = viewport.querySelector('.voice-search');
+  const magnifier = searching.querySelector('.voice-magnifier');
+  const searchDuration = 3000;
+  let voiceMode = '';
+  const status = document.querySelector('.sr-only');
+  const menu = document.querySelector('.menu');
+  menu.addEventListener('click', () => {
+    if (mode === 'camera') {
+      stopCamera();
+      mode = 'guide';
+      updateShutter();
+      wheel.focus({ preventScroll: true });
+      return;
+    }
+    if (mode !== 'guide' || voiceMode) return;
+    menu.dispatchEvent(new CustomEvent('menu-back', {
+      bubbles: true,
+      detail: { from: 'screen6' }
+    }));
+  });
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const animalNames = ['Butterfly', 'Cat', 'Sheep', 'Dolphin', 'Deer', 'Rabbit', 'Bear', 'Chicken', 'Zebra', 'Horse'];
+  const fruitNames = ['Apple', 'Banana', 'Orange', 'Grape', 'Strawberry', 'Blueberry', 'Watermelon', 'Peach', 'Lemon', 'Avocado'];
+  const names = [...animalNames, ...fruitNames];
+  const entries = names;
+  const guides = names.map((name, index) => {
+    const id = name.toLowerCase();
+    const animal = index < animalNames.length;
+    const number = String(index + 1).padStart(2, '0');
+    return {
+      id, name, level: name === 'Butterfly' ? 1 : 0,
+      src: 'stickers/' + (animal ? (index + 1) + '-sticker.png' : id + '.png'),
+      upgrade: animal ? 'upgrades/animal/' + number + '.png' : 'upgrades/fruit/' + id + '.png'
+    };
+  });
+  const rewardLines = {
+    "butterfly": {
+      "light": "You found a butterfly! Butterflies have tiny scales that give their wings color. What else can you find?",
+      "upgrade": "Great job! You found another butterfly! There are so many kinds of butterflies, and their wings can look very different. Keep exploring!"
+    },
+    "cat": {
+      "light": "You found a cat! Cats use their whiskers to sense what's close by. What else can you find?",
+      "upgrade": "Great job! You found another cat! Cats can turn their ears to listen in different directions. Keep exploring!"
+    },
+    "sheep": {
+      "light": "You found a sheep! Sheep have thick wool that helps keep them warm. What else can you find?",
+      "upgrade": "Great job! You found another sheep! Some sheep grow wool that is especially curly. Keep exploring!"
+    },
+    "dolphin": {
+      "light": "You found a dolphin! Dolphins come up to the surface to breathe. What else can you find?",
+      "upgrade": "Great job! You found another dolphin! Dolphins use clicks to help them find their way underwater. Keep exploring!"
+    },
+    "deer": {
+      "light": "You found a deer! Young deer often have pale spots that help them blend in. What else can you find?",
+      "upgrade": "Great job! You found another deer! Deer can move their ears to pick up sounds from different directions. Keep exploring!"
+    },
+    "rabbit": {
+      "light": "You found a rabbit! Rabbits love to hop around! What else can you find?",
+      "upgrade": "Great job! You found another rabbit! Rabbits have strong back legs that help them leap far. Keep exploring!"
+    },
+    "bear": {
+      "light": "You found a bear! Bears have a great sense of smell. What else can you find?",
+      "upgrade": "Great job! You found another bear! Some bears catch fish right out of the water. Keep exploring!"
+    },
+    "chicken": {
+      "light": "You found a chicken! Chickens scratch the ground to look for food. What else can you find?",
+      "upgrade": "Great job! You found another chicken! Chicken eggs can come in several different colors. Keep exploring!"
+    },
+    "zebra": {
+      "light": "You found a zebra! Zebras are famous for their black and white stripes. What else can you find?",
+      "upgrade": "Great job! You found another zebra! Every zebra has its own stripe pattern. Keep exploring!"
+    },
+    "horse": {
+      "light": "You found a horse! Horses can walk, trot, and gallop. What else can you find?",
+      "upgrade": "Great job! You found another horse! A horse's long tail can help swish flies away. Keep exploring!"
+    },
+    "apple": {
+      "light": "You found an apple! Apples can be red, green, or yellow. What else can you find?",
+      "upgrade": "Great job! You found another apple! An apple grows where a blossom once bloomed. Keep exploring!"
+    },
+    "banana": {
+      "light": "You found a banana! Bananas grow together in bunches. What else can you find?",
+      "upgrade": "Great job! You found another banana! Bananas usually get sweeter as they ripen. Keep exploring!"
+    },
+    "orange": {
+      "light": "You found an orange! An orange is made up of juicy little segments. What else can you find?",
+      "upgrade": "Great job! You found another orange! Orange blossoms are small, white, and sweet-smelling. Keep exploring!"
+    },
+    "grape": {
+      "light": "You found a grape! Grapes grow in clusters on vines. What else can you find?",
+      "upgrade": "Great job! You found another grape! Some grapes have seeds, and some are seedless. Keep exploring!"
+    },
+    "strawberry": {
+      "light": "You found a strawberry! Those little dots on the outside look like tiny freckles. What else can you find?",
+      "upgrade": "Great job! You found another strawberry! Before a strawberry grows, the plant makes a little flower. Keep exploring!"
+    },
+    "blueberry": {
+      "light": "You found a blueberry! Blueberries grow on bushes. What else can you find?",
+      "upgrade": "Great job! You found another blueberry! A ripe blueberry can have a soft, dusty-looking coating. Keep exploring!"
+    },
+    "watermelon": {
+      "light": "You found a watermelon! Watermelons hold a lot of water. What else can you find?",
+      "upgrade": "Great job! You found another watermelon! Some watermelons have yellow flesh inside. Keep exploring!"
+    },
+    "peach": {
+      "light": "You found a peach! Many peaches have soft, fuzzy skin. What else can you find?",
+      "upgrade": "Great job! You found another peach! A peach has one hard pit in the middle. Keep exploring!"
+    },
+    "lemon": {
+      "light": "You found a lemon! Lemons taste tart and smell bright and fresh. What else can you find?",
+      "upgrade": "Great job! You found another lemon! A lemon's peel has tiny pockets of fragrant oil. Keep exploring!"
+    },
+    "avocado": {
+      "light": "You found an avocado! An avocado has one big seed in the middle. What else can you find?",
+      "upgrade": "Great job! You found another avocado! Avocados grow on trees and usually soften after they are picked. Keep exploring!"
+    }
+  };
+
+
+  function createSvg(tag, attributes) {
+    const element = document.createElementNS(svgNS, tag);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    return element;
+  }
+
+  const tunnel = document.querySelector('.tunnel');
+  const route = track.slice(0, -1).map((start, index) => {
+    const end = track[index + 1];
+    const before = track[Math.max(0, index - 1)];
+    const after = track[Math.min(track.length - 1, index + 2)];
+    const control1 = start.map((value, axis) => value + (end[axis] - before[axis]) / 6);
+    const control2 = end.map((value, axis) => value - (after[axis] - start[axis]) / 6);
+    return 'C ' + [...control1, ...control2, ...end].join(' ');
+  }).join(' ');
+  const tunnelPath = 'M ' + track[0].join(' ') + ' ' + route;
+  for (const style of ['outline', 'rim', 'inner-edge', 'floor', 'guide']) {
+    tunnel.append(createSvg('path', { class: 'tunnel-' + style, d: tunnelPath }));
+  }
+
+  const circles = [-1, 0, 1].flatMap(cycle => entries.map((name, index) => {
+    const animal = index < animalNames.length;
+    const guide = guides[index];
+    const tile = createSvg('g', { class: 'guide-tile', role: 'img', 'aria-label': name });
+    const circle = createSvg('circle', { class: 'photo' });
+    tile.toggleAttribute('data-unlocked', guide.level > 0);
+    const sticker = createSvg('image', { class: 'tile-sticker', href: guide.src });
+    const badge = createSvg('g', { class: 'tile-badge', transform: 'translate(30 56)' });
+    badge.append(createSvg('image', {
+      href: animal ? 'stickers/animal-badge.png' : 'stickers/fruit-badge.png',
+      width: 56, height: 56
+    }));
+    tile.append(circle, sticker, badge);
+    layer.append(tile);
+    return { tile, circle, sticker, index, cycle, name, guide };
+  }));
+  const shutter = document.querySelector('.shutter');
+  const camera = document.querySelector('.capture-view');
+  const video = camera.querySelector('video');
+  const captureGuideIcon = camera.querySelector('.capture-guide-icon');
+  const cameraStatus = camera.querySelector('.camera-status');
+  const flash = camera.querySelector('.capture-flash');
+  const effect = document.querySelector('.unlock-effect');
+  const caption = document.querySelector('.guide-voice');
+  const voice = new Audio();
+  let cameraRequest = 0;
+  let mode = 'guide';
+  let selectionReady = false;
+  let selection = 0;
+
+  function updateShutter() {
+    const complete = selection !== null && guides[wrap(selection, entries.length)].level === 2;
+    shutter.toggleAttribute('data-complete', complete);
+    shutter.disabled = mode !== 'guide' || !!voiceMode || !selectionReady || complete;
+  }
+
+  function refreshGuide(guide) {
+    for (const tile of circles.filter(tile => tile.guide === guide)) {
+      tile.tile.toggleAttribute('data-unlocked', guide.level > 0);
+      tile.sticker.setAttribute('href', guide.level === 2 ? guide.upgrade : guide.src);
+    }
+  }
+
+  let trackOffset = 0;
+  let selectionFrame;
+  const mix = (a, b, t) => a + (b - a) * t;
+  const ease = t => 1 - (1 - t) ** 3;
+
+  function pointAlongTrack(position) {
+    const segment = Math.floor(position);
+    const t = position - segment;
+    const [before, from, to, after] = [-1, 0, 1, 2].map(offset =>
+      track[Math.max(0, Math.min(track.length - 1, segment + offset))]);
+    return from.map((value, axis) => {
+      const first = .5 * (to[axis] - before[axis]);
+      const second = .5 * (after[axis] - value);
+      return (2 * t ** 3 - 3 * t ** 2 + 1) * value + (t ** 3 - 2 * t ** 2 + t) * first
+        + (-2 * t ** 3 + 3 * t ** 2) * to[axis] + (t ** 3 - t ** 2) * second;
+    });
+  }
+
+  function radiusAt(distance) {
+    if (distance <= 1) return mix(100, 40, distance);
+    if (distance <= 2) return mix(40, 25, distance - 1);
+    if (distance <= 4) return mix(25, 15, (distance - 2) / 2);
+    return 15;
+  }
+
+  function drawTrack(offset, entryProgress = 1) {
+    const baseCycle = Math.floor(offset / entries.length);
+    for (const {tile, circle, sticker, index, cycle} of circles) {
+      const itemIndex = index + (baseCycle + cycle) * entries.length;
+      const distance = itemIndex - offset;
+      const destination = focusStop + distance;
+      const position = destination - (track.length - 1) * (1 - entryProgress);
+      const visible = position >= 0 && destination <= track.length - 1;
+      tile.style.display = visible ? '' : 'none';
+      tile.setAttribute('aria-hidden', String(!visible));
+      const detail = visible && entryProgress === 1 && Math.abs(distance) < 1e-6 && itemIndex === selection;
+      tile.toggleAttribute('data-detail', detail);
+      tile.setAttribute('aria-current', String(detail));
+      if (!visible) continue;
+      const [x, y] = pointAlongTrack(position);
+      const radius = radiusAt(Math.abs(position - focusStop));
+      const size = detail ? 160 : radius * 1.6;
+      const drawY = y;
+      tile.setAttribute('transform', 'translate(' + x + ' ' + drawY + ')');
+      circle.setAttribute('r', radius);
+      sticker.setAttribute('x', -size / 2);
+      sticker.setAttribute('y', -size / 2 - (detail ? 5 : 0));
+      sticker.setAttribute('width', size);
+      sticker.setAttribute('height', size);
+      if (detail) {
+        effect.style.setProperty('--effect-x', (x / 480 * 100) + '%');
+        effect.style.setProperty('--effect-y', (drawY / 480 * 100) + '%');
+        if (layer.lastElementChild !== tile) layer.append(tile);
+      }
+    }
+  }
+
+  function select(direction) {
+    if (wheel.disabled || voiceMode || mode !== 'guide') return;
+    selectEntry(selection + direction);
+  }
+
+  function selectEntry(next) {
+    selection = next;
+    selectionReady = false;
+    updateShutter();
+    const index = wrap(selection, entries.length);
+    const target = selection;
+    const start = trackOffset;
+    status.textContent = circles[entries.length + index].name;
+    cancelAnimationFrame(selectionFrame);
+    const startedAt = performance.now();
+    function frame(now) {
+      const t = reducedMotion ? 1 : Math.min(1, (now - startedAt) / 310);
+      trackOffset = mix(start, target, ease(t));
+      drawTrack(trackOffset);
+      if (t < 1) selectionFrame = requestAnimationFrame(frame);
+      else {
+        selectionReady = true;
+        updateShutter();
+      }
+    }
+    selectionFrame = requestAnimationFrame(frame);
+  }
+
+  menu.addEventListener('menu-back', () => parent.homeDevice.setPage('apps'));
+  window.setGuidePage = page => {
+    if (page === 'guide-camera' && mode === 'guide') openCamera();
+    if (page === 'guide' && mode === 'camera') menu.click();
+  };
+  const enteredAt = performance.now();
+  function enter(now) {
+    const t = reducedMotion ? 1 : Math.min(1, (now - enteredAt) / 1600);
+    drawTrack(0, t * t * (3 - 2 * t));
+    if (t < 1) requestAnimationFrame(enter);
+    else {
+      wheel.disabled = false;
+      selectionReady = true;
+      updateShutter();
+      status.textContent = '可滚动选择图鉴';
+      if (parent.homeDevice.screen.dataset.page === 'guide-camera' && mode === 'guide') openCamera();
+    }
+  }
+  drawTrack(0, 0);
+  requestAnimationFrame(enter);
+
+  let wheelDelta = 0;
+  let lastWheelTime = -Infinity;
+  let wheelGestureUsed = false;
+  wheel.addEventListener('wheel', event => {
+    event.preventDefault();
+    if (wheel.disabled || event.deltaY === 0) return;
+    const now = performance.now();
+    if (now - lastWheelTime > 130) {
+      wheelDelta = 0;
+      wheelGestureUsed = false;
+    }
+    lastWheelTime = now;
+    if (event.deltaMode !== 0 || Math.abs(event.deltaY) >= 50 && Number.isInteger(event.deltaY)) {
+      select(-Math.sign(event.deltaY));
+      return;
+    }
+    if (wheelGestureUsed) return;
+    wheelDelta += event.deltaY;
+    if (Math.abs(wheelDelta) < 12) return;
+    select(-Math.sign(wheelDelta));
+    wheelGestureUsed = true;
+  }, { passive: false });
+
+  let dragged = false;
+  wheel.addEventListener('click', event => {
+    if ((!dragged || event.detail === 0) && mode === 'guide' && !shutter.disabled) shutter.click();
+  });
+  let dragY;
+  wheel.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    wheel.setPointerCapture(event.pointerId);
+    dragged = false;
+    dragY = event.clientY;
+    wheel.setAttribute('data-held', '');
+  });
+  wheel.addEventListener('pointermove', event => {
+    if (dragY === undefined || !wheel.hasPointerCapture(event.pointerId)) return;
+    const distance = event.clientY - dragY;
+    if (Math.abs(distance) < 10) return;
+    dragged = true;
+    select(-Math.sign(distance));
+    dragY = event.clientY;
+  });
+  wheel.addEventListener('lostpointercapture', () => {
+    dragY = undefined;
+    wheel.removeAttribute('data-held');
+  });
+  wheel.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    select(event.key === 'ArrowUp' ? -1 : 1);
+  });
+  const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+  function stopCamera() {
+    cameraRequest++;
+    video.srcObject?.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+    camera.hidden = true;
+    if (parent.homeDevice.screen.dataset.page === 'guide-camera') parent.homeDevice.setPage('guide', true);
+    layer.removeAttribute("visibility");
+  }
+
+  async function openCamera() {
+    const request = ++cameraRequest;
+    const guide = guides[wrap(selection, guides.length)];
+    captureGuideIcon.alt = guide.name;
+    captureGuideIcon.src = guide.src;
+    mode = 'camera';
+    parent.homeDevice.setPage('guide-camera', true);
+    camera.hidden = false;
+    layer.setAttribute("visibility", "hidden");
+    cameraStatus.hidden = false;
+    cameraStatus.textContent = '正在打开摄像头…';
+    updateShutter();
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, audio: false
+      });
+      if (request !== cameraRequest) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      video.srcObject = stream;
+      await video.play();
+      if (request !== cameraRequest) return;
+      cameraStatus.hidden = true;
+      shutter.disabled = false;
+    } catch (error) {
+      if (request !== cameraRequest) return;
+      video.srcObject?.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
+      cameraStatus.textContent = error.name === 'NotAllowedError'
+        ? '请允许摄像头权限，再重新进入取景。'
+        : '无法打开摄像头，请确认设备和浏览器支持取景。';
+    }
+  }
+
+  function playAudio(src) {
+    return new Promise(resolve => {
+      const finish = () => {
+        clearTimeout(timer);
+        voice.onended = null;
+        voice.onerror = null;
+        voice.pause();
+        resolve();
+      };
+      const timer = setTimeout(finish, 20000);
+      voice.onended = finish;
+      voice.onerror = finish;
+      voice.src = src;
+      voice.play().catch(finish);
+    });
+  }
+
+  async function finishCapture() {
+    const index = wrap(selection, entries.length);
+    const entry = guides[index];
+    const sticker = circles.find(item => item.index === index && item.tile.hasAttribute('data-detail')).sticker;
+    const upgrading = entry.level === 1;
+    stopCamera();
+    mode = 'reward';
+    updateShutter();
+    let shrink;
+    if (upgrading && !reducedMotion) {
+      const artwork = new Image();
+      artwork.src = entry.upgrade;
+      await artwork.decode().catch(() => {});
+      shrink = sticker.animate([{ scale: 1 }, { scale: 0 }], {
+        duration: 420, easing: 'ease-in', fill: 'forwards'
+      });
+      await shrink.finished;
+    }
+    entry.level = upgrading ? 2 : 1;
+    refreshGuide(entry);
+    shrink?.cancel();
+    if (!reducedMotion) {
+      const frames = upgrading
+        ? [{ scale: 0 }, { scale: 1.19, offset: .60 }, { scale: .93, offset: .82 }, { scale: 1 }]
+        : [
+            { filter: 'grayscale(1)', scale: 1, easing: 'ease-in-out' },
+            { filter: 'grayscale(0)', scale: 1.125, offset: .65, easing: 'ease-out' },
+            { filter: 'grayscale(0)', scale: 1 }
+          ];
+      await sticker.animate(frames, {
+        duration: upgrading ? 980 : 1250,
+        easing: upgrading ? 'ease-out' : 'linear'
+      }).finished;
+    }
+    effect.src = 'unlock.gif';
+    effect.hidden = false;
+    const celebrate = upgrading ? '17_BigCelebrate.mp3' : '16_SmallCelebrate.mp3';
+    const celebration = playAudio('voice/' + celebrate);
+    await pause(4000);
+    effect.hidden = true;
+    effect.removeAttribute('src');
+    await celebration;
+
+    mode = 'narration';
+    const kind = upgrading ? 'upgrade' : 'light';
+    caption.textContent = rewardLines[entry.id][kind];
+    caption.hidden = false;
+    await playAudio('voice/' + kind + '-' + entry.id + '.mp3');
+    if (mode !== 'narration') return;
+    caption.hidden = true;
+
+    mode = 'guide';
+    for (let step = 1; step < guides.length; step++) {
+      if (guides[wrap(selection + step, guides.length)].level !== 0) continue;
+      selectEntry(selection + step);
+      return;
+    }
+    updateShutter();
+  }
+
+  shutter.addEventListener('click', async () => {
+    if (mode === 'guide') {
+      if (!shutter.disabled) openCamera();
+      return;
+    }
+    if (mode !== 'camera' || !video.videoWidth) return;
+    mode = 'capturing';
+    shutter.disabled = true;
+    menu.disabled = true;
+    const photo = document.createElement('canvas');
+    photo.width = video.videoWidth;
+    photo.height = video.videoHeight;
+    photo.getContext('2d').drawImage(video, 0, 0);
+    flash.hidden = false;
+    await pause(120);
+    flash.hidden = true;
+    menu.disabled = false;
+    await finishCapture();
+  });
+  window.addEventListener('pagehide', () => {
+    if (mode === 'camera') {
+      stopCamera();
+      mode = 'guide';
+      updateShutter();
+    }
+    voice.pause();
+  });
+
+  speech.addEventListener('click', () => {
+    if (wheel.disabled || voiceMode || mode !== 'guide') return;
+    voiceMode = 'voice-choice';
+    updateShutter();
+    viewport.dataset.voiceOverlay = '';
+    for (const [image, src] of listeningGifs) image.src = src;
+    listening.hidden = false;
+    speech.setAttribute('data-held', '');
+    speech.setAttribute('aria-pressed', 'true');
+    voiceCommands.hidden = false;
+    voiceCommands.querySelector('button').focus();
+  });
+
+  voiceCommands.addEventListener('click', async event => {
+    const command = event.target.closest('button[data-command]')?.dataset.command;
+    if (voiceMode !== 'voice-choice' || !command) return;
+    voiceMode = 'voice-search';
+    speech.removeAttribute('data-held');
+    speech.setAttribute('aria-pressed', 'false');
+    voiceCommands.hidden = true;
+    listening.hidden = true;
+    for (const [image] of listeningGifs) image.removeAttribute('src');
+    searching.hidden = false;
+    if (!reducedMotion) {
+      const points = [{ transform: 'translate(0, 0)' }];
+      let from = [0, 0];
+      let angle = Math.random() * 2 * Math.PI;
+      const polar = (heading, radius) => [Math.cos(heading) * radius, Math.sin(heading) * radius];
+
+      for (let segment = 0; segment < 3; segment++) {
+        const turn = (1.1 + Math.random() * 1.3) * (Math.random() < .5 ? -1 : 1);
+        const bend = polar(angle + turn * .45, 48 + Math.random() * 25);
+        angle += turn;
+        const to = polar(angle, 34 + Math.random() * 39);
+
+        for (let step = 1; step <= 10; step++) {
+          const t = step / 10;
+          const [x, y] = from.map((value, axis) =>
+            (1 - t) ** 2 * value + 2 * (1 - t) * t * bend[axis] + t ** 2 * to[axis]);
+          points.push({ transform: 'translate(' + x / 6.98 + 'cqw, ' + y / 6.98 + 'cqw)' });
+        }
+        from = to;
+      }
+      magnifier.animate(points, { duration: searchDuration, easing: 'ease-in-out', fill: 'forwards' });
+    }
+    speech.focus({ preventScroll: true });
+    await new Promise(resolve => setTimeout(resolve, searchDuration));
+    searching.hidden = true;
+    delete viewport.dataset.voiceOverlay;
+    magnifier.getAnimations().forEach(animation => animation.cancel());
+    const index = names.indexOf(command === 'rabbit' ? 'Rabbit' : 'Apple');
+    const cycle = Math.round((trackOffset - index) / entries.length);
+    voiceMode = '';
+    selectEntry(index + cycle * entries.length);
+  });
+
+  speech.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    speech.setPointerCapture(event.pointerId);
+    speech.setAttribute('data-held', '');
+  });
+  speech.addEventListener('lostpointercapture', () => {
+    if (voiceMode !== 'voice-choice') speech.removeAttribute('data-held');
+  });
+</script>
+</body>
+</html>

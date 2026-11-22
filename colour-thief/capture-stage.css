@@ -1,0 +1,16 @@
+.capture-stage {position:absolute;inset:0;overflow:hidden;background:#303a32;}
+.capture-camera,.capture-color {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.capture-camera {filter:grayscale(1);}.capture-color{clip-path:circle(0% at 50% 50%);}
+.capture-thief {position:absolute;width:20.8333%;height:20.8333%;}.capture-thief svg{width:100%;height:100%;}
+.capture-night {position:absolute;inset:0;pointer-events:none;}
+.capture-demo {position:absolute;inset:0;background:#0005;backdrop-filter:blur(7.5px);transition:opacity .45s;}
+.capture-demo-leaving{opacity:0;}
+.capture-device{position:absolute;left:33.75%;top:31.3125%;width:29.7917%;height:37.375%;}
+.capture-wheel{position:absolute;left:56.7708%;top:39.4375%;width:9.47917%;height:9.47917%;}
+.capture-sensor{position:absolute;left:58.9583%;top:33.9583%;width:1.6667%;height:1.6667%;}
+.capture-palm{position:absolute;left:50.1196%;top:25.3784%;width:16.25%;height:21.875%;transform:rotate(-33.7deg);animation:palm-cover 2.8s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes palm-cover{from{translate:200px -240px;opacity:0}15%{opacity:1}70%,100%{translate:0 0;opacity:1}}
+.capture-zig{position:absolute;inset:0;width:100%;height:100%;}
+.capture-pill{position:absolute;left:50%;top:47.0833%;translate:-50% -50%;margin:0;padding:3.75% 6.6667%;border-radius:38px;background:#f4b322;color:#3b372d;white-space:nowrap;font:700 5.015cqw/1.143 'ABC Publisher Rounded Sans',system-ui;animation:capture-pill-pop .65s cubic-bezier(.2,1.6,.4,1) both;}
+@keyframes capture-pill-pop{from{scale:0;opacity:0}to{scale:1;opacity:1}}
+@media(prefers-reduced-motion:reduce){.capture-palm,.capture-pill{animation:none;}}

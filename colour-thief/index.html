@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>颜色小偷</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; padding: 12px 0 62px; display: grid; place-items: center; background: #404040; }
+  .device { position: relative; width: min(94vw, calc(81.25dvh - 61px), 698px); aspect-ratio: 698 / 859; isolation: isolate; }
+  .shell, .screen, .control { position: absolute; background-repeat: no-repeat; }
+  .shell, .screen { inset: 0; background-size: 100% 100%; pointer-events: none; }
+  .shell {
+    z-index: 1;
+    background-image: url(device.png);
+    clip-path: polygon(0 0, 100% 0, 100% 22.8%, 93.55% 22.8%, 93.55% 44%, 100% 44%, 100% 100%, 0 100%, 0 69.2%, 10.17% 69.2%, 10.17% 22.7%, 0 22.7%);
+  }
+  @font-face {
+    font-family: "ABC Publisher Rounded Sans";
+    src: url("ABCPublisherRoundedSans-Bold.otf") format("opentype");
+    font-weight: 700;
+    font-display: swap;
+  }
+  .device { container-type: inline-size; }
+  .screen {
+    pointer-events: auto;
+    inset: 6.8685% auto auto 17.3352%;
+    width: 68.7679%; aspect-ratio: 1; z-index: 2; overflow: hidden; border-radius: 50%;
+    background: linear-gradient(145.427deg, #433e33 2.0068%, #1c1a14 98.927%);
+  }
+  .screen-decoration, .screen-countdown { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .screen-cover {
+    position: absolute; inset: 14.5833%; border-radius: 50%;
+    overflow: hidden; background: #898989;
+  }
+  .screen-character {
+    position: absolute; left: 34.1176%; top: 14.4118%; width: 32.3529%; height: auto;
+  }
+  .screen-title {
+    position: absolute; left: 50.2941%; top: 53.2353%; translate: -50% 0;
+    margin: 0; color: white; text-align: center; white-space: nowrap;
+    font: 700 7.1633cqw/1 "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .control {
+    padding: 0; border: 0; appearance: none; background-color: transparent;
+    background-image: url(device.png); cursor: pointer; touch-action: none;
+    transition: translate 90ms ease, filter 110ms ease;
+  }
+  .speech {
+    left: 0; top: 22.7%; width: 10.32%; height: 46.5%;
+    background-size: 969.44% 215.05%; background-position: left 42.43%;
+    clip-path: polygon(0 7%, 100% 0, 100% 100%, 91% 99%, 90% 88%, 0 9%);
+    --press: 22%;
+  }
+  .wheel {
+    left: 93.41%; top: 22.82%; width: 6.59%; height: 21.18%;
+    background-size: 1517.39% 472.53%; background-position: right 28.95%;
+    clip-path: ellipse(134% 58% at -34% 50%);
+    --press: -28%;
+  }
+  .control[data-held] { translate: var(--press) 0; filter: brightness(.87); }
+  .control:focus-visible { filter: brightness(1.3); }
+  .wheel { cursor: ns-resize; }
+  .menu {
+    left: 74.64%; top: 63.67%; width: 13.47%; height: 10.94%;
+    background-size: 742.55% 913.83%; background-position: 86.26% 71.50%;
+    clip-path: circle(49%);
+    z-index: 2;
+  }
+  .menu:active { filter: brightness(.82); }
+  .shutter {
+    left: 49.85%; top: 70.43%; width: 25.93%; height: 21.07%;
+    background-size: 385.64% 474.59%; background-position: 67.30% 89.24%;
+    clip-path: circle(49%); z-index: 2;
+  }
+  .shutter:active { filter: brightness(.82); }
+  .light-sensor {
+    position: absolute; left: 80.23%; top: 8.50%; width: 2.58%; aspect-ratio: 1;
+    translate: -50% -50%; border-radius: 50%; z-index: 3;
+  }
+  .light-sensor:hover { outline: 1px solid #fff9; }
+  .microphone {
+    position: absolute; top: calc(100% + 10px); left: 50%; translate: -50% 0;
+    min-height: 44px; padding: 0 18px; border: 1px solid #777; border-radius: 22px;
+    background: #292929; color: white; font: 600 14px system-ui, sans-serif; cursor: pointer;
+  }
+  .microphone:active { background: #505050; }
+  .light-sensor:hover {
+    cursor: none;
+  }
+  .palm-cursor {
+    position: fixed; height: 160px; width: auto; pointer-events: none;
+    translate: -64px -8px; z-index: 10;
+  }
+  .camera-world, .gray-world, .thief-scene {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+  .camera-world { object-fit: cover; }
+  .gray-world { backdrop-filter: grayscale(1); -webkit-backdrop-filter: grayscale(1); }
+  .thief-overlay {
+    position: absolute; left: 45.2083%; top: 11.4583%; width: 40%; height: 30.4583%;
+    transform-origin: 74% 34%;
+  }
+  .thief-overlay img, .thief-overlay > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .thief-tail { animation: scattered-sparkle .55s ease-in-out infinite alternate; }
+  .trail-star {
+    position: absolute; width: var(--size); height: var(--size);
+    line-height: 1; translate: -50% -50%;
+    animation: scattered-sparkle 1.35s ease-in-out infinite alternate;
+    animation-delay: var(--delay);
+  }
+  @keyframes scattered-sparkle {
+    from { opacity: .3; scale: .65; }
+    to { opacity: .95; scale: 1.12; }
+  }
+  .camera-notice {
+    position: absolute; left: 16%; top: 66%; width: 68%; margin: 0;
+    padding: 8px; border-radius: 8px; color: white; background: #0009;
+    text-align: center; font: 14px/1.4 system-ui, sans-serif;
+  }
+  @media (prefers-reduced-motion: reduce) { .trail-star { animation: none; } }
+  .thief-bubble {
+    position: absolute; left: 34.7292%; top: 3.84375%; width: 28.875%; height: 20.8542%;
+    transform-origin: 90% 90%;
+  }
+  .thief-bubble img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .thief-bubble p {
+    position: absolute; left: 51.0823%; top: 18.5315%; translate: -50% 0; margin: 0;
+    color: #2e2e2e; text-align: center; white-space: nowrap;
+    font: 700 4.298cqw/1 "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .thief-eye { transform-box: fill-box; transform-origin: center; }
+  .thief-eye-left { animation: sneaky-left 3.4s ease-in-out infinite; }
+  .thief-eye-right { animation: sneaky-right 3.4s ease-in-out infinite; }
+  @keyframes sneaky-left {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    25%, 43% { transform: translateX(1.5px) scaleY(.84); }
+    64%, 70% { transform: translateX(-1px) scaleY(1); }
+    76% { transform: scaleY(.12); }
+    82% { transform: scaleY(1); }
+  }
+  @keyframes sneaky-right {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    25%, 43% { transform: translateX(1.5px) scaleY(.84); }
+    64%, 70% { transform: translateX(-1px) scaleY(1); }
+    76% { transform: scaleY(.12); }
+    82% { transform: scaleY(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .thief-eye { animation: none; } }
+  .screen4-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mission-title {
+    position: absolute; left: 24.7917%; top: 36.25%; width: 50.4167%; margin: 0;
+    color: #bcffb1; text-align: center; white-space: nowrap;
+    font: 700 8.596cqw/1.1 "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .screen5 { position: absolute; inset: 0; background: #ff4444; border: 1px solid black; border-radius: 50%; overflow: hidden; }
+  .mission-red {
+    position: absolute; inset: 43.125% 0 auto; margin: 0; color: #f5f2ed; text-align: center;
+    font: 700 8.596cqw/1.1 "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .mission-bar { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .snap-island { position: absolute; left: 28.5417%; bottom: 3.75%; width: 42.9167%; height: 27.5%; }
+  .snap-island-bg { position: absolute; left: -1.77%; top: -18.18%; width: 103.56%; height: 118.94%; transform: rotate(180deg); }
+  .snap-symbol {
+    position: absolute; left: 35.4369%; top: 11.3636%; width: 29.1262%; aspect-ratio: 1;
+    display: grid; place-items: center; background: #ffffffe6; border-radius: 50%;
+  }
+  .snap-symbol img { width: 66%; height: 66%; }
+  .snap-label {
+    position: absolute; left: 0; right: 0; top: 62.8788%; margin: 0; text-align: center;
+    color: #3b372d; font: 700 3.1519cqw/1.0909 "ABC Publisher Rounded Sans", system-ui, sans-serif;
+  }
+  .playback-control {
+    position: fixed; left: max(16px, env(safe-area-inset-left));
+    bottom: max(16px, env(safe-area-inset-bottom)); z-index: 100;
+    min-width: 90px; min-height: 44px; padding: 0 16px;
+    border: 1px solid #888; border-radius: 22px; background: #292929; color: white;
+    font: 600 15px system-ui, sans-serif; cursor: pointer;
+  }
+</style>
+<link rel="stylesheet" href="round-one.css">
+<link rel="stylesheet" href="capture-stage.css">
+<style>body{display:block;padding:0;margin:0}.device{width:100%;height:auto;aspect-ratio:698/859}.menu{display:grid;place-items:center}.menu::before{content:"";position:absolute;inset:10%;border-radius:50%;background:linear-gradient(135deg,#d8d5c7,#c3beb0)}.menu svg{position:relative;width:46%;height:46%;color:#544f44}</style></head>
+<body>
+<main class="device" aria-label="颜色小偷">
+  <div class="shell"></div>
+  <section class="screen" aria-label="Screen1 · Colour Thief">
+    <img class="screen-decoration" src="star-sparkle.gif" alt="">
+    <img class="screen-countdown" alt="任务倒计时" hidden>
+    <p class="mission-title" hidden>Mission<br>starts in</p>
+    <div class="screen-cover">
+      <img class="screen-character" src="cover-character.svg" alt="">
+      <h1 class="screen-title">Colour<br>Thief</h1>
+    </div>
+    <video class="camera-world" autoplay muted playsinline hidden></video>
+    <div class="gray-world" hidden></div>
+    <div class="thief-scene" hidden>
+      <div class="thief-trail"></div>
+      <div class="thief-overlay">
+        <svg class="thief-character" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 146.2" width="192" height="146.2" fill="none"><g id="å°å·">
+<path id="Vector" d="M142 7.99992C163 7.99992 179 22.9999 181 42.9999C183 57.9999 189 66.9999 185 78.9999C181 91.9999 164 95.9999 142 95.9999C120 95.9999 103 91.9999 99 78.9999C95 66.9999 101 57.9999 103 42.9999C105 22.9999 121 7.99992 142 7.99992Z" fill="white" />
+<path id="Vector_2" d="M142 14.0002C160 14.0002 173 27.0002 175 44.0002C177 58.0002 182 66.0002 179 76.0002C176 87.0002 161 90.0002 142 90.0002C123 90.0002 108 87.0002 105 76.0002C102 66.0002 107 58.0002 109 44.0002C111 27.0002 124 14.0002 142 14.0002Z" fill="#9A9A9A" />
+<g class="thief-eye thief-eye-left"><path d="M39.5 54.5C43.366 54.5 46.5 50.4706 46.5 45.5L28 43C28 47.9706 35.634 54.5 39.5 54.5Z" transform="translate(92 0)" fill="#2E2E2E"/></g><g class="thief-eye thief-eye-right"><path d="M61 54.5C57.134 54.5 54 50.4706 54 45.5L72.5 43C72.5 47.9706 64.866 54.5 61 54.5Z" transform="translate(92 0)" fill="#2E2E2E"/></g></g>
+</svg>
+        <img class="thief-tail" src="thief-tail.svg" alt="">
+      </div>
+    </div>
+    <div class="thief-bubble" hidden>
+      <img src="speech-bubble.svg" alt="">
+      <p>Hehe<br>Mine!</p>
+    </div>
+    <img class="screen4-overlay" alt="" hidden>
+    <div class="screen5" hidden>
+      <p class="mission-red">Red</p>
+      <img class="mission-bar" alt="">
+      <div class="snap-island">
+        <img class="snap-island-bg" src="snap-island.svg" alt="">
+        <div class="snap-symbol"><img src="snap-icon.svg" alt=""></div>
+        <p class="snap-label">Snap!</p>
+      </div>
+    </div>
+    <p class="camera-notice" role="status" hidden></p>
+  </section>
+  <button class="control speech" type="button" aria-label="说话键"></button>
+  <button class="control wheel" type="button" aria-label="滚轮键，可按下或用上下方向键滚动"></button>
+  <button class="control shutter" type="button" aria-label="拍照键"></button>
+  <button class="control menu" type="button" aria-label="返回上一层"><svg aria-hidden="true" viewBox="0 0 32 32"><path d="M10 25h10a7.5 7.5 0 0 0 0-15H6m6-6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <span class="light-sensor" role="img" aria-label="感光孔"></span>
+  <button class="microphone" type="button">麦克风</button>
+</main>
+<img class="palm-cursor" src="palm-cursor.png" alt="" hidden>
+<script src="playback-control.js"></script>
+<script src="omggif.js"></script>
+<script src="gif-data.js"></script>
+<script src="pausable-gifs.js"></script>
+<script>
+  const device = document.querySelector('.device');
+  const wheel = device.querySelector('.wheel');
+
+  function emit(type, detail) {
+    device.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
+  }
+
+  const screen = device.querySelector('.screen');
+  const cover = screen.querySelector('.screen-cover');
+  const countdown = screen.querySelector('.screen-countdown');
+  let currentScreen = 1;
+  let countdownTimer;
+  const missionTitle = screen.querySelector('.mission-title');
+  const countdownSound = new Audio('countdown-sound.wav');
+  countdownSound.preload = 'auto';
+  let missionAnimation;
+
+  async function enterScreen2() {
+    if (currentScreen !== 5) return;
+    currentScreen = 2;
+    missionVoice.pause();
+    screen5.hidden = true;
+    screen.setAttribute('aria-label', 'Screen2 · 任务倒计时');
+    cover.hidden = true;
+    clearTimeout(screen4Timer);
+    zigVoice.pause();
+    cameraVideo.hidden = true;
+    cameraVideo.srcObject?.getTracks().forEach(track => track.stop());
+    cameraVideo.srcObject = null;
+    grayWorld.hidden = true;
+    thiefScene.hidden = true;
+    thiefBubble.hidden = true;
+    screen4Overlay.hidden = true;
+    screen4Overlay.onload = null;
+    screen.querySelector('.screen-decoration').hidden = false;
+    missionTitle.hidden = false;
+    if (!reducedMotion) {
+      missionAnimation = missionTitle.animate([
+        { transform: 'translateY(-260%)', opacity: 0 },
+        { transform: 'translateY(10%)', opacity: 1, offset: .65 },
+        { transform: 'translateY(-6%)', opacity: 1, offset: .83 },
+        { transform: 'translateY(0)', opacity: 1 }
+      ], { duration: 780, easing: 'ease-out', fill: 'forwards' });
+      try { await missionAnimation.finished; } catch { return; }
+    }
+    if (!active || currentScreen !== 2) return;
+    countdownTimer = setTimeout(() => {
+      if (!active || currentScreen !== 2) return;
+      missionTitle.hidden = true;
+      countdown.onload = () => {
+        countdown.onload = null;
+        if (!active || currentScreen !== 2) return;
+        countdown.hidden = false;
+        countdownSound.currentTime = 0;
+        countdownSound.play().catch(() => {});
+        countdownTimer = setTimeout(() => {
+          if (active && currentScreen === 2) emit('screen2-countdown-complete');
+        }, 4830);
+      };
+      countdown.src = 'countdown.gif';
+    }, 280);
+  }
+  device.addEventListener('wheel-down', () => {
+    if (currentScreen === 1) enterScreen3();
+  });
+
+
+  const cameraVideo = screen.querySelector('.camera-world');
+  const grayWorld = screen.querySelector('.gray-world');
+  const thiefScene = screen.querySelector('.thief-scene');
+  const thief = screen.querySelector('.thief-overlay');
+  const trail = screen.querySelector('.thief-trail');
+  const cameraNotice = screen.querySelector('.camera-notice');
+  const thiefBubble = screen.querySelector('.thief-bubble');
+  const thiefVoice = new Audio('thief-magic-mix.wav');
+  thiefVoice.preload = 'auto';
+  const zigVoice = new Audio('zig-help-hana.mp3');
+  zigVoice.preload = 'auto';
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const screen4Overlay = screen.querySelector('.screen4-overlay');
+  const nextOverlay = new Image();
+  nextOverlay.src = 'B1.gif';
+  const waitingOverlay = new Image();
+  waitingOverlay.src = 'A7_loop.gif';
+  const screen5 = screen.querySelector('.screen5');
+  const missionBar = screen5.querySelector('.mission-bar');
+  const missionVoice = new Audio('zig-red-mission-hana.mp3');
+  missionVoice.preload = 'auto';
+  function enterScreen5() {
+    if (!active || currentScreen !== 4) return;
+    currentScreen = 5;
+    clearTimeout(screen4Timer);
+    screen4Overlay.onload = null;
+    screen4Overlay.hidden = true;
+    zigVoice.pause();
+    clearTimeout(countdownTimer);
+    countdownSound.pause();
+    missionTitle.hidden = true;
+    countdown.hidden = true;
+    screen.querySelector('.screen-decoration').hidden = true;
+    cameraNotice.hidden = true;
+    screen.setAttribute('aria-label', 'Screen5 · Find 3 red objects');
+    missionBar.onload = () => {
+      missionBar.onload = null;
+      if (!active || currentScreen !== 5) return;
+      missionVoice.currentTime = 0;
+      missionVoice.play().catch(() => {});
+    };
+    missionBar.src = 'Bar3_1.gif';
+    screen5.hidden = false;
+  }
+  missionVoice.addEventListener('ended', () => {
+    if (active && currentScreen === 5) enterScreen2();
+  });
+  let screen4Timer;
+  zigVoice.addEventListener('ended', () => {
+    if (!active || currentScreen !== 4) return;
+    clearTimeout(screen4Timer);
+    screen4Overlay.onload = () => {
+      screen4Overlay.onload = null;
+      if (active && currentScreen === 4) screen4Timer = setTimeout(enterScreen5, 960);
+    };
+    screen4Overlay.src = 'A7_loop.gif';
+  });
+  function enterScreen4() {
+    if (!active || currentScreen !== 3) return;
+    currentScreen = 4;
+    cancelAnimationFrame(sceneFrame);
+    thiefVoice.pause();
+    thiefScene.hidden = false;
+    thief.style.left = '45.2083%';
+    thief.style.top = '11.4583%';
+    thief.style.transform = '';
+    thief.style.opacity = '1';
+    thief.querySelector('.thief-tail').hidden = true;
+    grayWorld.hidden = false;
+    grayWorld.style.maskImage = 'none';
+    grayWorld.style.webkitMaskImage = 'none';
+    screen.setAttribute('aria-label', 'Screen4 · 颜色小偷');
+    thiefBubble.hidden = true;
+    screen4Overlay.onload = () => {
+      screen4Overlay.onload = null;
+      if (!active || currentScreen !== 4) return;
+      zigVoice.currentTime = 0;
+      zigVoice.play().catch(() => {});
+      screen4Timer = setTimeout(() => {
+        if (active && currentScreen === 4) screen4Overlay.src = 'B1.gif';
+      }, 1740);
+    };
+    screen4Overlay.src = 'A4_1_once.gif';
+    screen4Overlay.hidden = false;
+  }
+  device.addEventListener('screen3-intro-complete', enterScreen4);
+
+  // Designer-only shortcut. Hardware controls retain their own events.
+  screen.addEventListener('click', () => {
+    if (currentScreen === 1) enterScreen3();
+    else if (currentScreen === 3) enterScreen4();
+    else if (currentScreen === 4) enterScreen5();
+    else if (currentScreen === 5) enterScreen2();
+  });
+  let sceneFrame;
+  let active = true;
+
+  async function enterScreen3() {
+    if (currentScreen !== 1 || !active) return;
+    currentScreen = 3;
+    parent.homeDevice?.setPage('game-1', true);
+    clearTimeout(countdownTimer);
+    missionAnimation?.cancel();
+    missionTitle.hidden = true;
+    countdownSound.pause();
+    screen.setAttribute('aria-label', 'Screen3 · 颜色小偷');
+    countdown.hidden = true;
+    cover.hidden = true;
+    screen.querySelector('.screen-decoration').hidden = true;
+    cameraNotice.hidden = false;
+    cameraNotice.textContent = '正在打开摄像头…';
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if (!active) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      cameraVideo.srcObject = stream;
+      cameraVideo.hidden = false;
+      await cameraVideo.play();
+      if (!active) return;
+      cameraNotice.hidden = true;
+      if (currentScreen === 3) startThiefScene();
+    } catch (error) {
+      cameraVideo.srcObject?.getTracks().forEach(track => track.stop());
+      cameraVideo.srcObject = null;
+      cameraNotice.textContent = error.name === 'NotAllowedError'
+        ? '请允许摄像头权限，刷新后重新开始。'
+        : '无法打开摄像头，请确认摄像头可用，刷新后重试。';
+    }
+  }
+
+  function startThiefScene() {
+    thiefVoice.currentTime = 0;
+    thiefVoice.play().catch(() => {});
+    thiefScene.hidden = false;
+    thief.querySelector('.thief-tail').hidden = false;
+    const orbitDuration = reducedMotion ? 1 : 4200;
+    const startedAt = performance.now();
+    const startAngle = -Math.PI / 4;
+    let nextStar = .1;
+    const smooth = t => t * t * (3 - 2 * t);
+    function orbit(now) {
+      const t = Math.min(1, (now - startedAt) / orbitDuration);
+      const angle = startAngle + smooth(t) * Math.PI * 2;
+      const x = 240 + 168 * Math.cos(angle);
+      const y = 240 + 168 * Math.sin(angle);
+      const bounce = 1 + Math.sin(t * Math.PI * 7) * .065 * (1 - t);
+      // Percentage coordinates stay tied to the 480px screen design.
+      thief.style.left = ((x - 142) / 480 * 100) + '%';
+      thief.style.top = ((y - 50) / 480 * 100) + '%';
+      thief.style.transform = 'scale(' + bounce + ') rotate(' + Math.sin(t * Math.PI * 6) * 7 + 'deg)';
+      thief.style.opacity = Math.min(1, t * 10);
+      if (t >= nextStar && t < .95) {
+        const star = document.createElement('img');
+        star.className = 'trail-star';
+        star.src = 'trail-star.svg';
+        star.alt = '';
+        const n = trail.children.length;
+        star.style.left = ((240 + (132 + n % 3 * 10) * Math.cos(angle)) / 480 * 100) + '%';
+        star.style.top = ((240 + (132 + n % 3 * 10) * Math.sin(angle)) / 480 * 100) + '%';
+        star.style.setProperty('--size', (12 + n % 3 * 5) / 698 * 100 + 'cqw');
+        star.style.setProperty('--delay', (-n * .17) + 's');
+        trail.append(star);
+        nextStar += .065;
+      }
+      if (t < 1) sceneFrame = requestAnimationFrame(orbit);
+      else {
+        thief.style.left = '45.2083%';
+        thief.style.top = '11.4583%';
+        thief.style.transform = '';
+        thief.style.opacity = '1';
+        thief.querySelector('.thief-tail').hidden = true;
+        thiefBubble.hidden = false;
+        if (!reducedMotion) thiefBubble.animate([
+          { transform: 'scale(0)', opacity: 0 },
+          { transform: 'scale(1.10)', opacity: 1, offset: .7 },
+          { transform: 'scale(1)', opacity: 1 }
+        ], { duration: 380, easing: 'ease-out' });
+        startGrayTransition();
+      }
+    }
+    sceneFrame = requestAnimationFrame(orbit);
+  }
+
+  function startGrayTransition() {
+    grayWorld.hidden = false;
+    const startedAt = performance.now();
+    function fade(now) {
+      const t = reducedMotion ? 1 : Math.min(1, (now - startedAt) / 2600);
+      const radius = 75 * (1 - t);
+      const mask = t === 1 ? 'none'
+        : 'radial-gradient(circle at center, transparent ' + Math.max(0, radius - 9) + '%, black ' + radius + '%)';
+      grayWorld.style.maskImage = mask;
+      grayWorld.style.webkitMaskImage = mask;
+      if (t < 1) sceneFrame = requestAnimationFrame(fade);
+      else emit('screen3-intro-complete');
+    }
+    sceneFrame = requestAnimationFrame(fade);
+  }
+
+  window.addEventListener('pagehide', () => {
+    active = false;
+    missionVoice.pause();
+    missionAnimation?.cancel();
+    countdownSound.pause();
+    zigVoice.pause();
+    clearTimeout(screen4Timer);
+    clearTimeout(countdownTimer);
+    thiefVoice.pause();
+    cancelAnimationFrame(sceneFrame);
+    cameraVideo.srcObject?.getTracks().forEach(track => track.stop());
+    cameraVideo.srcObject = null;
+  });
+
+  const lightSensor = device.querySelector('.light-sensor');
+  const palm = document.querySelector('.palm-cursor');
+  function movePalm(event) {
+    palm.style.left = event.clientX + 'px';
+    palm.style.top = event.clientY + 'px';
+  }
+  lightSensor.addEventListener('mouseenter', event => {
+    movePalm(event);
+    palm.hidden = false;
+    emit('light-sensor-enter');
+  });
+  lightSensor.addEventListener('mousemove', movePalm);
+  lightSensor.addEventListener('mouseleave', () => {
+    palm.hidden = true;
+    emit('light-sensor-leave');
+  });
+  device.querySelector('.microphone').addEventListener('click', () => emit('microphone-press'));
+
+  for (const key of ['speech', 'wheel', 'shutter', 'menu']) {
+    const button = device.querySelector('.' + key);
+    let startY;
+    let dragged = false;
+
+    function hold() {
+      if (button.hasAttribute('data-held')) return;
+      button.setAttribute('data-held', '');
+      if (key === 'speech') emit('speech-down');
+      if (key === 'wheel') emit('wheel-down');
+    }
+
+    function release() {
+      if (!button.hasAttribute('data-held')) return;
+      button.removeAttribute('data-held');
+      if (key === 'speech') emit('speech-up');
+    }
+
+    button.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      button.setPointerCapture(event.pointerId);
+      startY = event.clientY;
+      dragged = false;
+      hold();
+    });
+    button.addEventListener('lostpointercapture', release);
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
+    button.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') hold();
+    });
+    button.addEventListener('keyup', release);
+    button.addEventListener('blur', release);
+    button.addEventListener('click', event => {
+      if (key === 'wheel' && dragged && event.detail) return;
+      emit(key === 'menu' ? 'menu-back' : key + '-press');
+    });
+
+    if (key === 'wheel') button.addEventListener('pointermove', event => {
+      if (!button.hasPointerCapture(event.pointerId)) return;
+      const distance = event.clientY - startY;
+      if (Math.abs(distance) < 16) return;
+      startY = event.clientY;
+      dragged = true;
+      emit('wheel-turn', { direction: -Math.sign(distance) });
+    });
+  }
+
+  let delta = 0;
+  let lastScroll = -Infinity;
+  wheel.addEventListener('wheel', event => {
+    event.preventDefault();
+    const now = performance.now();
+    if (now - lastScroll > 120) delta = 0;
+    lastScroll = now;
+    delta += event.deltaY * ([1, 16, 100][event.deltaMode] ?? 1);
+    if (Math.abs(delta) < 24) return;
+    emit('wheel-turn', { direction: -Math.sign(delta) });
+    delta = 0;
+  }, { passive: false });
+  wheel.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    emit('wheel-turn', { direction: event.key === 'ArrowUp' ? -1 : 1 });
+  });
+  device.addEventListener('menu-back', () => {
+    parent.homeDevice?.setPage(currentScreen === 1 ? 'apps' : 'activities');
+  });
+  if (location.hash === '#game-1') enterScreen3();
+</script>
+<script src="round-one.js"></script>
+<script src="capture-stage.js"></script>
+</body>
+</html>

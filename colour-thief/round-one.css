@@ -1,0 +1,73 @@
+.round-one { position:absolute; inset:0; background:linear-gradient(145.427deg,#433e33,#1c1a14); }
+.round-one[data-phase="camera"] { background:#111; }
+.round-one video,.round-particles,.round-bar,.round-success,.round-sparkle,.recognition-processing { position:absolute; inset:0; width:100%; height:100%; }
+.round-one video { object-fit:cover; }
+.round-focus { position:absolute; width:25.8333%; height:25.8333%; left:37.0833%; top:37.0833%; }
+.round-target { position:absolute; width:12.5%; height:12.5%; left:43.75%; top:43.75%; }
+.round-photo { position:absolute; left:50%; top:50%; translate:-50% -50%; width:70.8333%; aspect-ratio:1; border: max(1px,.43cqw) solid #bcffb1; border-radius:50%; overflow:hidden; }
+.round-photo img { position:absolute; width:100%; height:100%; inset:0; object-fit:cover; }
+.round-photo-gray { filter:grayscale(1); }
+.round-one[data-phase="recognition"] .round-photo { width:52.0833%; }
+.round-one[data-phase="recognition"] { background:radial-gradient(circle,#bcffb1,#5e805982 40%,#1c1a14 90%); }
+.round-label { position:absolute; top:76.04%; left:50%; translate:-50% 0; margin:0; padding:1.72cqw 3.72cqw; border-radius:4.58cqw; color:#3b372d; background:#bcffb1; white-space:nowrap; font:700 5.015cqw/1.143 "ABC Publisher Rounded Sans",system-ui; }
+.round-thief { position:absolute; width:20.8333%; height:20.8333%; left:71.4583%; top:29.1667%; }
+.round-thief svg { width:100%; height:100%; }
+.round-trail { position:absolute; inset:0; }
+.round-trail img { position:absolute; width:5%; height:5%; animation:scattered-sparkle .7s ease-in-out infinite alternate; }
+.shake-demo { position:absolute; inset:0; backdrop-filter:blur(7.5px); background:#0005; }
+.shake-demo-device { position:absolute; left:37.5%; top:42.7083%; width:25%; height:28.75%; transform-origin:50% 60%; }
+.shake-demo-arrows { position:absolute; left:33.3333%; top:24.375%; width:33.2728%; height:19.0267%; }
+.shake-action { position:fixed; left:50%; bottom:10px; translate:-50% 0; min-height:44px; padding:0 24px; border:1px solid #aaa; border-radius:24px; background:#292929; color:white; font:600 16px system-ui; cursor:pointer; }
+.camera-notice { z-index: 8; }
+@keyframes target-intro {
+  from { transform:scale(5); opacity:0; }
+  to { transform:scale(1); opacity:1; }
+}
+@keyframes target-pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50% { transform:scale(.82); opacity:.65; }
+}
+.round-one[data-phase="camera"] .round-target {
+  animation:target-intro 700ms ease-out both, target-pulse 1s ease-in-out 700ms infinite;
+}
+.round-one[data-phase="recognition"] .round-photo { animation:photo-recognize 3s ease-in-out both; }
+@keyframes photo-recognize {
+  0% { width:100%; }
+  25%,55%,85%,100% { width:52.0833%; }
+  40%,70% { width:58.3333%; }
+}
+.round-one[data-phase="reveal"] .round-photo { animation:photo-reveal 600ms ease-out both; }
+@keyframes photo-reveal { from { width:52.0833%; } to { width:70.8333%; } }
+@media(prefers-reduced-motion:reduce) {
+ .round-one .round-target,.round-one .round-photo { animation:none!important; }
+}
+/* Round two: a rigid front and perpendicular base share one perspective. */
+.demo-device-scene,.blow-demo-arrow { display:none; }
+.round-one[data-round="2"] .shake-demo-device,.round-one[data-round="2"] .shake-demo-arrows { display:none; }
+.round-one[data-round="2"] .demo-device-scene { display:block;position:absolute;left:37.5%;top:25.2083%;width:25%;height:28.75%;perspective:440px; }
+.demo-device-solid { position:absolute;inset:0;transform-style:preserve-3d;transform-origin:50% 100%;animation:device-tip-back 3.4s ease-in-out infinite; }
+.demo-device-front { position:absolute;inset:0;width:100%;height:100%;transform:translateZ(0.2px); }
+.demo-device-bottom { position:absolute;left:10%;top:100%;width:82%;height:16px;background:#737572;border-radius:0 0 12px 12px;transform-origin:50% 0;transform:rotateX(-90deg);display:flex;justify-content:space-around;align-items:center; }
+.demo-device-bottom i { width:5px;height:5px;border-radius:50%;background:#d7d7d7; }
+.round-one[data-round="2"] .blow-demo-arrow { display:block;position:absolute;top:55.8333%;width:9.0477%;height:23.75%;animation:blow-air 1.35s ease-in-out infinite; }
+.blow-one {left:36.6667%;}.blow-two {left:45.625%;animation-delay:.15s!important;}.blow-three {left:54.5833%;animation-delay:.3s!important;}
+@keyframes device-tip-back {0%,12%{transform:rotateX(0deg)}45%,78%{transform:rotateX(40deg)}100%{transform:rotateX(0deg)}}
+@keyframes blow-air {0%,100%{translate:0 5px;opacity:.5}50%{translate:0 -4px;opacity:1}}
+@media(prefers-reduced-motion:reduce){.demo-device-solid{animation:none;transform:rotateX(40deg)}.blow-demo-arrow{animation:none!important;}}
+.round-fan {position:absolute;left:37.2917%;top:71.875%;width:25.4167%;height:25.4167%;transform-origin:50% 50%;pointer-events:none;}
+.scroll-demo {display:none;position:absolute;inset:0;}
+.round-one[data-round="3"] .scroll-demo {display:block;}
+.round-one[data-round="3"] .shake-demo-device,.round-one[data-round="3"] .shake-demo-arrows {display:none;}
+.scroll-demo-device {position:absolute;left:33.75%;top:31.3125%;width:29.7917%;height:37.375%;}
+.scroll-demo-wheel {position:absolute;left:56.7708%;top:39.4375%;width:9.47917%;height:9.47917%;transform-box:border-box;transform-origin:50% 50%;animation:demo-roll 1.6s ease-in-out infinite alternate;}
+.scroll-demo-arrow {position:absolute;left:59.1107%;top:38.1809%;width:17.06254%;height:12.36735%;transform:rotate(90deg);transform-origin:50% 50%;overflow:visible;}
+.scroll-demo-arrow .scroll-dot-moving {offset-path:path('M8.4502 32.4952 C11.9354 27.2793 16.4963 22.1692 22.1666 18.5568 C27.837 14.9444 34.3958 12.9704 41.118 12.8531 C47.8402 12.7357 54.464 14.4796 60.2569 17.8919 C66.0498 21.3042 70.7863 26.252 73.4502 33.7949');offset-rotate:0deg;animation:scroll-dot 2.4s linear infinite;}
+.scroll-demo-arrow .scroll-dot-fixed {animation:none;offset-path:none;}
+@keyframes demo-roll {from{transform:rotate(-65deg)}to{transform:rotate(65deg)}}
+@keyframes scroll-dot {0%{offset-distance:0%;animation-timing-function:ease-in-out;}88%{offset-distance:100%;animation-timing-function:ease-out;}100%{offset-distance:0%;}}
+@media(prefers-reduced-motion:reduce){.scroll-demo-wheel,.scroll-demo-arrow circle{animation:none;}}
+.round-one[data-round="3"][data-phase="recover"] .round-photo::after {content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(to right,transparent calc(25% - .5px),#ffffff38 25%,transparent calc(25% + .5px),transparent calc(50% - .5px),#ffffff38 50%,transparent calc(50% + .5px),transparent calc(75% - .5px),#ffffff38 75%,transparent calc(75% + .5px));}
+.round-navigation {position:fixed;right:16px;bottom:16px;display:flex;gap:8px;z-index:30;}
+.round-navigation button {min-height:42px;padding:0 15px;border:1px solid #aaa;border-radius:22px;background:#292929;color:white;font:600 14px system-ui;cursor:pointer;}
+.round-navigation button:hover,.round-navigation button[aria-pressed="true"] {background:#505050;border-color:#bcffb1;}
+@media(max-width:600px){.round-navigation{bottom:66px;right:10px;gap:5px;}.round-navigation button{padding:0 10px;}}
