@@ -86,6 +86,9 @@ function showPageNote() {
   const key = notePrefix + '.' + (hasIdleNote ? 'idle.step-back' : section);
   if (key === noteKey) return;
   noteKey = key;
+  const pageLabel = document.querySelector('.ia-node[aria-current="page"]')?.lastChild.textContent.trim() || '待机';
+  notes.querySelector('h2').textContent = '备注 · ' + pageLabel + (page === 'apps' ? ' UI' + (screenElement.dataset.ui || '1') : '');
+  noteInput.placeholder = '此页暂无备注，点击填写';
   noteStatus.textContent = '';
   noteInput.value = hasIdleNote ? noteInput.defaultValue : '';
   if (drafts.has(key)) {
@@ -104,7 +107,8 @@ function showPageNote() {
         for (const key of keys) {
           if (key === source + 'idle' || key.startsWith(source + 'idle.')) continue;
           const value = localStorage.getItem(key);
-          if (value !== null) localStorage.setItem(notePrefix + '.' + key.slice(source.length), value);
+          const destination = notePrefix + '.' + key.slice(source.length);
+          if (value !== null && localStorage.getItem(destination) === null) localStorage.setItem(destination, value);
         }
         if (keys.length) localStorage.setItem(copied, 'done');
       }
@@ -130,7 +134,8 @@ function showPageNote() {
 观察点：场景铺满屏幕后，孩子是否知道自己还在选功能，以及按下滚轮才会进入？`
       };
       for (const [ui, body] of Object.entries(reviews)) {
-        localStorage.setItem(notePrefix + '.apps.ui' + ui, body + task);
+        const uiKey = notePrefix + '.apps.ui' + ui;
+        if (localStorage.getItem(uiKey) === null) localStorage.setItem(uiKey, body + task);
       }
       localStorage.setItem(reviewKey, 'done');
     }
@@ -155,6 +160,22 @@ function showPageNote() {
       }
       localStorage.setItem(assessmentKey, 'done');
     }
+    const designNotesKey = 'zigzag.home.migrations.collectionCameraNotes.v1.' + notePrefix;
+    if (!localStorage.getItem(designNotesKey)) {
+      const additions = {
+        'apps.ui4': '图鉴列表 UI4：Level Up的 progress bar待设计，是否需要？',
+        'guide': 'Level Up的 progress bar待设计，是否需要？',
+        'guide-camera': '新增图鉴位置指引区别于拍照探索的相机取景'
+      };
+      for (const [section, line] of Object.entries(additions)) {
+        const sectionKey = notePrefix + '.' + section;
+        const existing = localStorage.getItem(sectionKey) ?? '';
+        if (!existing.includes(line)) {
+          localStorage.setItem(sectionKey, [existing, line].filter(Boolean).join('\n\n'));
+        }
+      }
+      localStorage.setItem(designNotesKey, 'done');
+    }
     const saved = localStorage.getItem(key);
     // Older prototypes had one note per plan. Show it on the starting page.
     noteInput.value = saved ?? (usesHomeKey && section === 'apps.ui1'
@@ -171,7 +192,11 @@ new MutationObserver(showPageNote).observe(screenElement, {
 noteInput.addEventListener('input', () => {
   fitNoteHeight();
   drafts.set(noteKey, noteInput.value);
-  noteStatus.textContent = '未保存';
+  try {
+    localStorage.setItem(noteKey, noteInput.value);
+    drafts.delete(noteKey);
+    noteStatus.textContent = '已自动保存';
+  } catch { noteStatus.textContent = '暂未保存'; }
 });
 notes.querySelector('button').addEventListener('click', () => {
   try {

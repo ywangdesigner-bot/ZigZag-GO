@@ -105,7 +105,7 @@ function disposeCamera(){
 function clearCapture(){
  resetDiscovery();device.getAnimations().forEach(a=>a.cancel());card.getAnimations().forEach(a=>a.cancel());card.hidden=true;freeze.hidden=true;flash.hidden=true;lastCapture=null;}
 async function useSource(next){
- const token=++sourceToken;flow.reset();stopSounds();playback.cancel(motionQuietTimer);disposeCamera();clearCapture();selected=0;candidates=targetObjects.map(o=>({...o}));resetBoxPositions();renderSelection();started=true;$('.start-camera').hidden=true;
+ const token=++sourceToken;flow.reset();stopSounds();playback.cancel(motionQuietTimer);disposeCamera();clearCapture();selected=0;candidates=targetObjects.map(o=>({...o}));resetBoxPositions();renderSelection();started=true;
  source=next;video.hidden=next!=='camera';demo.hidden=next==='camera';
  for(const [id,mode] of [['#use-camera','camera'],['#use-demo','demo']])$(id).setAttribute('aria-pressed',String(mode===next));
  if(next==='camera'){
@@ -117,7 +117,11 @@ async function useSource(next){
    cameraStream=stream;video.srcObject=stream;await video.play();if(token!==sourceToken)return;
    $('.camera-name').textContent=stream.getVideoTracks()[0].label;startTracking(token);
   }catch(error){
-   if(token!==sourceToken)return;disposeCamera();video.hidden=true;demo.hidden=true;flow.reset();$('.camera-name').textContent='未连接 Razer Kiyo';status.textContent=error.name==='NotAllowedError'?'请允许摄像头权限，再点「Razer Kiyo」。':error.message;$('.start-camera').hidden=false;return;
+   if(token!==sourceToken)return;
+   const reason=error.name==='NotAllowedError'?'未获摄像头权限':error.message;
+   await useSource('demo');
+   if(token+1===sourceToken){$('.camera-name').textContent='示例取景';status.textContent=reason+' · 正在使用示例场景';}
+   return;
   }
  }else {await demo.decode().catch(()=>{});candidates=candidates.map(o=>({...o,x:(o.x-.5)*1.025+.5,y:(o.y-.5)*1.025+.5,w:o.w*1.025,h:o.h*1.025}));resetBoxPositions();renderSelection();}
  if(token===sourceToken)flow.focus();
@@ -138,10 +142,6 @@ async function recognizeFrozen(original,token){
  return new Promise(resolve=>{const generation=trackingGeneration;staticRecognition={resolve,generation};trackerWorker.postMessage({type:'frame',generation,width,height,sharpness:frameSharpness(pixels),buffer:pixels.data.buffer},[pixels.data.buffer]);playback.schedule(()=>{if(staticRecognition?.resolve===resolve){staticRecognition=null;resolve(null)}},5000);});
 }
 async function capture(via){
- if (via === 'shutter' && embeddedHome && embeddedHome.screen.dataset.page === 'camera') {
-  embeddedHome.setPage('photo-play');
-  return;
- }
  if(playback.paused)return;
  if(['confirmed','fire-complete'].includes(flow.phase)&&via==='shutter'){useSource(source);return;}
  if(flow.phase==='selection'){
@@ -153,7 +153,7 @@ async function capture(via){
  if(via!=='shutter'||flow.phase!=='ready')return;
  const image=source==='camera'?video:demo,iw=source==='camera'?video.videoWidth:demo.naturalWidth,ih=source==='camera'?video.videoHeight:demo.naturalHeight;
  if(!iw||!ih)return;
- if (embeddedHome) embeddedHome.setPage('camera', true);
+ if (embeddedHome) embeddedHome.setPage('photo-play', true);
  flow.capture();stopTracking(false);const token=sourceToken;
  const original=document.createElement('canvas');original.width=iw;original.height=ih;original.getContext('2d').drawImage(image,0,0,iw,ih);
  still.width=still.height=480;cropViewport(still.getContext('2d'),original,iw,ih);
@@ -363,7 +363,7 @@ for(const key of ['speech','wheel','shutter','menu']){
  // Accessibility activation without physical pointer or keyboard events.
  button.addEventListener('click',event=>{if(event.detail===0&&!down&&performance.now()-downAt>550){if(key==='wheel'||key==='shutter')capture(key);else if(key==='speech')beginFireListening();else if(key==='menu')backFromSnap();}});
 }
-$('.start-camera').addEventListener('click',()=>useSource('camera'));$('#use-camera').addEventListener('click',()=>useSource('camera'));$('#use-demo').addEventListener('click',()=>useSource('demo'));$('#restart').addEventListener('click',()=>useSource(source));$('#move-device').addEventListener('click',()=>{trackingStableSince=performance.now();moveDevice();});
+$('#use-camera').addEventListener('click',()=>useSource('camera'));$('#use-demo').addEventListener('click',()=>useSource('demo'));$('#restart').addEventListener('click',()=>useSource(source));$('#move-device').addEventListener('click',()=>{trackingStableSince=performance.now();moveDevice();});
 $('#camera-device').addEventListener('change',()=>{preferredCameraId=$('#camera-device').value;if(started)useSource('camera');});
 window.addEventListener('pagehide',()=>{sourceToken++;flow.reset();resetDiscovery();disposeCamera();stopSounds();});
 // Integration points for later real detector / AF / IMU adapters; frames stay browser-local.
@@ -380,7 +380,7 @@ function backFromSnap() {
 if (embeddedHome) {
   document.documentElement.classList.add('embedded');
   window.setSnapPage = page => {
-    if (page === 'photo-play' || started) useSource(started ? source : 'camera');
+    if (page === 'camera' || page === 'photo-play') useSource(started ? source : 'camera');
   };
-  window.setSnapPage(location.hash.slice(1));
-}
+  window.setSnapPage(location.hash.slice(1) || 'camera');
+} else { useSource('camera'); }

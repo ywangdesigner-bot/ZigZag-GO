@@ -43,7 +43,8 @@
     });
     const selected = wrap(-Math.round(position));
     menu.querySelector('.center-icon').setAttribute('href','ui1/'+centerIcon(selected)+'.svg');
-    menu.querySelector('text').textContent = ({ ZigDex: 'collections', Hub: 'Discoveries' })[items[selected][0]] || items[selected][0];
+    const entry = items[selected][0];
+    menu.querySelector('text').textContent = ({ ZigDex: 'Collections', Hub: 'Discoveries' })[entry] || entry;
   }
   function rotate(step) {
     target += step;
